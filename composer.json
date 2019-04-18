@@ -1,0 +1,45 @@
+{
+  "name": "jojo1981/json-ast-builder",
+  "description": "Json AST builder",
+  "keywords": [
+    "json",
+    "syntax",
+    "semantic",
+    "tokenize",
+    "token",
+    "parser",
+    "lexer",
+    "ast",
+    "abstract",
+    "tree",
+    "traversal",
+    "visitor"
+  ],
+  "type": "library",
+  "license": "MIT",
+  "readme": "README.md",
+  "authors": [
+    {
+      "name": "Joost Nijhuis",
+      "email": "jnijhuis81@gmail.com"
+    }
+  ],
+  "prefer-stable": true,
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^7.1",
+    "ext-ctype": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^7.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Jojo1981\\JsonAstBuilder\\": "src/"
+    }
+  },
+  "config": {
+    "bin-dir": "bin",
+    "sort-packages": true
+  }
+}

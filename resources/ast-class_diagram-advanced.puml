@@ -1,0 +1,185 @@
+@startuml
+
+hide empty members
+
+title
+Advanced class diagram AST nodes
+
+
+end title
+
+class TokenAwareTrait << (T,lightblue) >> {
+    -token: ?Token
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class Token {
+    -name: string
+    -type: int
+    -lexeme: ?string
+    -position: int
+    -lineNumber: int
+    -linePosition: int
+    +getName(): string
+    +getType(): int
+    +getLexeme(): ?string
+    +getPosition(): int
+    +getLineNumber(): int
+    +getLinePosition(): int
+}
+
+
+interface NodeInterface
+
+interface TypeNodeInterface {
+    +getToken() ?Token
+}
+
+class JsonNode {
+    -element: ElementNode
+    +getElement(): ElementNode
+    +setElement(element: ElementNode): void
+}
+
+class ElementNode {
+    -value: ValueNode
+    +getValue(): ValueNode
+    +setValue(value: ValueNode): void
+}
+
+class ValueNode {
+    -type: TypeNodeInterface
+    +getType(): TypeNodeInterface
+    +setType(type: TypeNodeInterface): void
+}
+
+class ObjectNode {
+    -members: MemberNode[]
+    +getMembers(): MemberNode[]
+    +setMembers(members: MemberNode[]): void
+}
+
+class ArrayNode {
+    -elements: ElementNode[]
+    +getElements(): ElementNode[]
+    +setElements(elements: ElementNode[]): void
+}
+
+'ArrayNode --|> ElementNode
+ElementNode o-- "*" ArrayNode
+
+
+class stringNode {
+    -value: string
+    +getValue(): string
+    +setValue(value: string): void
+}
+
+class NumberNode {
+    -value: float
+    +getValue(): float
+    +setValue(value: float): void
+}
+
+class IntegerNode {
+    -value: int
+    +getValue(): int
+    +setValue(value: int): void
+}
+
+class BooleanNode {
+    -value: bool
+    +getValue(): bool
+    +setValue(value: bool): void
+}
+
+class NullNode
+
+class KeyNode {
+    -value: string
+    +getValue(): string
+    +setValue(value: string): void
+}
+
+class MemberNode {
+    -key: KeyNode
+    -value: ElementNode
+    +getKey(): KeyNode
+    +getValue(): ElementNode
+}
+
+ObjectNode ---o "*" MemberNode
+MemberNode ---o KeyNode
+'MemberNode ---o ElementNode
+ElementNode o--- MemberNode
+
+TokenAwareTrait ---|> ObjectNode
+TokenAwareTrait ---|> ArrayNode
+TokenAwareTrait ---|> stringNode
+TokenAwareTrait ---|> NumberNode
+TokenAwareTrait ---|> IntegerNode
+TokenAwareTrait ---|> BooleanNode
+TokenAwareTrait ---|> NullNode
+TokenAwareTrait ---|> KeyNode
+
+NodeInterface ..|> JsonNode
+NodeInterface ..|> ElementNode
+NodeInterface ..|> ValueNode
+NodeInterface ..|> TypeNodeInterface
+NodeInterface ..|> ObjectNode
+NodeInterface ..|> ArrayNode
+NodeInterface ..|> stringNode
+NodeInterface ..|> NumberNode
+NodeInterface ..|> IntegerNode
+NodeInterface ..|> BooleanNode
+NodeInterface ..|> NullNode
+
+JsonNode --* ElementNode
+ElementNode --* ValueNode
+ValueNode --* TypeNodeInterface
+
+TypeNodeInterface ...|> ObjectNode
+TypeNodeInterface ...|> ArrayNode
+TypeNodeInterface ...|> stringNode
+TypeNodeInterface ...|> NumberNode
+TypeNodeInterface ...|> IntegerNode
+TypeNodeInterface ...|> ObjectNode
+TypeNodeInterface ...|> BooleanNode
+TypeNodeInterface ...|> NullNode
+
+'ObjectNode <|.. TypeNodeInterface
+'ArrayNode <|.. TypeNodeInterface
+'stringNode <|.. TypeNodeInterface
+'NumberNode <|.. TypeNodeInterface
+'IntegerNode <|.. TypeNodeInterface
+'ObjectNode <|.. TypeNodeInterface
+'BooleanNode <|.. TypeNodeInterface
+'NullNode <|.. TypeNodeInterface
+
+'TokenAwareTrait --* Token
+Token *-- TokenAwareTrait
+
+note left of NodeInterface
+Basic empty interface which
+all nodes implements
+end note
+
+note left of TypeNodeInterface
+Basic interface for
+all type nodes
+end note
+
+note top of TokenAwareTrait
+Helper trait
+for token storage
+start of the node
+end note
+
+note top of Token
+The lexical token which
+corresponds with the
+start of the node
+end note
+
+@enduml

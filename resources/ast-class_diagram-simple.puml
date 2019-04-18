@@ -1,0 +1,151 @@
+@startuml
+
+hide empty members
+
+title
+Simple class diagram AST nodes
+
+
+end title
+
+class JsonNode {
+    -element: ElementNode
+    +getElement(): ElementNode
+    +setElement(element: ElementNode): void
+}
+
+class ElementNode {
+    -value: ValueNode
+    +getValue(): ValueNode
+    +setValue(value: ValueNode): void
+}
+
+class ValueNode {
+    -type: TypeNodeInterface
+    +getType(): TypeNodeInterface
+    +setType(type: TypeNodeInterface): void
+}
+
+class ObjectNode {
+    -members: MemberNode[]
+    -token: ?Token
+    +getMembers(): MemberNode[]
+    +setMembers(members: MemberNode[]): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class ArrayNode {
+    -elements: ElementNode[]
+    -token: ?Token
+    +getElements(): ElementNode[]
+    +setElements(elements: ElementNode[]): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class stringNode {
+    -value: string
+    -token: ?Token
+    +getValue(): string
+    +setValue(value: string): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class NumberNode {
+    -value: float
+    -token: ?Token
+    +getValue(): float
+    +setValue(value: float): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class IntegerNode {
+    -value: int
+    -token: ?Token
+    +getValue(): int
+    +setValue(value: int): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class BooleanNode {
+    -value: bool
+    -token: ?Token
+    +getValue(): bool
+    +setValue(value: bool): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class NullNode
+
+class KeyNode {
+    -value: string
+    -token: ?Token
+    +getValue(): string
+    +setValue(value: string): void
+    +getToken() ?Token
+    +setToken(token ?Token) void
+}
+
+class MemberNode {
+    -key: KeyNode
+    -value: ElementNode
+    +getKey(): KeyNode
+    +getValue(): ElementNode
+}
+
+class Token {
+    -name: string
+    -type: int
+    -lexeme: ?string
+    -position: int
+    -lineNumber: int
+    -linePosition: int
+    +getName(): string
+    +getType(): int
+    +getLexeme(): ?string
+    +getPosition(): int
+    +getLineNumber(): int
+    +getLinePosition(): int
+}
+
+JsonNode -* ElementNode
+ElementNode --* ValueNode
+
+ValueNode ---o "1" ObjectNode
+ValueNode ---o "1" ArrayNode
+ValueNode ---o "1" stringNode
+ValueNode ---o "1" NumberNode
+ValueNode ---o "1" IntegerNode
+ValueNode ---o "1" BooleanNode
+ValueNode ---o "1" NullNode
+
+ArrayNode ..* "*" ElementNode
+
+ObjectNode --* "*" MemberNode
+MemberNode "1" --* KeyNode
+MemberNode "1" ..* ElementNode
+
+ObjectNode ---* Token
+ArrayNode ---* Token
+stringNode ---* Token
+NumberNode ---* Token
+IntegerNode ---* Token
+BooleanNode ---* Token
+NullNode ---* Token
+KeyNode -* Token
+
+'Token o- ObjectNode
+'ArrayNode o--o Token
+'stringNode o--o Token
+'NumberNode o--o Token
+'IntegerNode o--o Token
+'BooleanNode o--o Token
+'NullNode o--o Token
+'KeyNode o--o Token
+
+@enduml
