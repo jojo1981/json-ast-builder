@@ -191,7 +191,6 @@ class Scanner
         return $result;
     }
 
-
     /**
      * Prepare input and convert all new line characters like carriage returns and line feed characters into the current
      * system used end of line character.
@@ -201,11 +200,14 @@ class Scanner
      */
     private function prepareInput(string $input): string
     {
-        $tmpReplacement = \uniqid('NEWLINE_', true);
-        $search = ["\r\n", "\n\r", "\r", "\n", $tmpReplacement];
-        $replace = \array_merge(\array_fill(0, 4, $tmpReplacement), [PHP_EOL]);
+        $otherLineSeparators = \array_filter(
+            ["\r\n", "\n\r", "\r", "\n"],
+            static function (string $lineSeparators): bool {
+                return PHP_EOL !== $lineSeparators;
+            }
+        );
 
-        return \str_replace($search, $replace, $input);
+        return \str_replace($otherLineSeparators, PHP_EOL, $input);
     }
 
     /**
