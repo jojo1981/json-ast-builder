@@ -1,8 +1,6 @@
 JSON AST Builder for PHP 
 =====================
 
-[![Build Status](https://travis-ci.com/jojo1981/json-ast-builder.svg?branch=master)](https://travis-ci.com/jojo1981/json-ast-builder)
-[![Coverage Status](https://coveralls.io/repos/github/jojo1981/json-ast-builder/badge.svg)](https://coveralls.io/github/jojo1981/json-ast-builder)
 [![Latest Stable Version](https://poser.pugx.org/jojo1981/json-ast-builder/v/stable)](https://packagist.org/packages/jojo1981/json-ast-builder)
 [![Total Downloads](https://poser.pugx.org/jojo1981/json-ast-builder/downloads)](https://packagist.org/packages/jojo1981/json-ast-builder)
 [![License](https://poser.pugx.org/jojo1981/json-ast-builder/license)](https://packagist.org/packages/jojo1981/json-ast-builder)
