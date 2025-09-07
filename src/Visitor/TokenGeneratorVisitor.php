@@ -7,6 +7,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Visitor;
 
 use Jojo1981\JsonAstBuilder\Ast\ArrayNode;
@@ -21,29 +23,43 @@ use Jojo1981\JsonAstBuilder\Ast\NumberNode;
 use Jojo1981\JsonAstBuilder\Ast\ObjectNode;
 use Jojo1981\JsonAstBuilder\Ast\StringNode;
 use Jojo1981\JsonAstBuilder\Ast\ValueNode;
-use Jojo1981\JsonAstBuilder\Lexer;
 use Jojo1981\JsonAstBuilder\Lexer\Token;
+use Jojo1981\JsonAstBuilder\Lexer\TokenType;
+use UnexpectedValueException;
+use function array_merge;
+use function count;
+use function str_repeat;
+use function strlen;
 
-class TokenGeneratorVisitor implements VisitorInterface
+/**
+ * @package Jojo1981\JsonAstBuilder\Visitor
+ */
+final class TokenGeneratorVisitor implements VisitorInterface
 {
     /** @var array */
-    private $options;
+    private array $options;
 
     /** @var int */
-    private $level = 0;
+    private int $level = 0;
 
     /** @var string */
-    private $indent;
+    private string $indent;
 
     /** @var int */
-    private $position = 0;
+    private int $position = 0;
 
     /** @var int */
-    private $linePosition = 1;
+    private int $linePosition = 1;
 
     /** @var int */
-    private $lineNumber = 1;
+    private int $lineNumber = 1;
 
+    /** @var Token[] */
+    private array $result = [];
+
+    /**
+     * @param array $options
+     */
     public function __construct(array $options = [])
     {
         $defaults = [
@@ -54,30 +70,73 @@ class TokenGeneratorVisitor implements VisitorInterface
             'spacesAfterColon' => 1,
             'lineSeparator' => PHP_EOL
         ];
-        $this->options = \array_merge($defaults, $options);
-        $this->indent = \str_repeat($this->options['useTabs'] ? "\t" : ' ', $this->options['indentSize']);
+        $this->options = array_merge($defaults, $options);
+        $this->indent = str_repeat($this->options['useTabs'] ? "\t" : ' ', $this->options['indentSize']);
     }
 
-    public function visitJsonNode(JsonNode $jsonNode)
+    /**
+     * @return Token[]
+     */
+    public function getResult(): array
     {
-        $jsonNode->getElement()->accept($this);
+        return $this->result;
     }
 
-    public function visitElementNode(ElementNode $elementNode)
+    /**
+     * @param JsonNode $jsonNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitJsonNode(JsonNode $jsonNode): mixed
     {
-        $elementNode->getValue()->accept($this);
+        $result = $jsonNode->getElement()->accept($this);
+        $this->addToken(TokenType::TOKEN_EOF, null);
+
+        return $result;
     }
 
-    public function visitValueNode(ValueNode $valueNode)
+    /**
+     * @param int $tokenType
+     * @param string|null $lexeme
+     * @return void
+     * @throws UnexpectedValueException
+     */
+    private function addToken(int $tokenType, ?string $lexeme): void
     {
-        $valueNode->getType()->accept($this);
+        $tokenName = TokenType::getNameForTokenType($tokenType);
+        $this->result[] = new Token($tokenType, $tokenName, $this->position, $this->lineNumber, $this->linePosition, $lexeme);
+        if ($lexeme !== null) {
+            $this->position += strlen($lexeme);
+        }
     }
 
-    public function visitObjectNode(ObjectNode $objectNode)
+    /**
+     * @param ElementNode $elementNode
+     * @return mixed
+     */
+    public function visitElementNode(ElementNode $elementNode): mixed
     {
-        $this->addText('{');
+        return $elementNode->getValue()->accept($this);
+    }
 
-        $memberCount = \count($objectNode->getMembers());
+    /**
+     * @param ValueNode $valueNode
+     * @return mixed
+     */
+    public function visitValueNode(ValueNode $valueNode): mixed
+    {
+        return $valueNode->getType()->accept($this);
+    }
+
+    /**
+     * @param ObjectNode $objectNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitObjectNode(ObjectNode $objectNode): mixed
+    {
+        $this->addToken(TokenType::TOKEN_LEFT_CURLY_BRACKET, '{');
+        $memberCount = count($objectNode->getMembers());
         if ($memberCount > 0) {
             $this->level++;
             $this->addNewline();
@@ -87,7 +146,7 @@ class TokenGeneratorVisitor implements VisitorInterface
                 $this->addIndent();
                 $member->accept($this);
                 if ($i < $memberCount - 1) {
-                    $this->addText(',');
+                    $this->addToken(TokenType::TOKEN_COMMA, ',');
 
                 }
                 $this->addNewline();
@@ -95,15 +154,49 @@ class TokenGeneratorVisitor implements VisitorInterface
             }
             $this->level--;
         }
+        $this->addToken(TokenType::TOKEN_RIGHT_CURLY_BRACKET, '}');
 
-        $this->addText('}');
+        return null;
     }
 
-    public function visitArrayNode(ArrayNode $arrayNode)
+    /**
+     * @return void
+     * @throws UnexpectedValueException
+     */
+    private function addNewline(): void
     {
-        $this->addText('[');
+        if ($this->options['pretty']) {
+            $type = TokenType::TOKEN_NEWLINE;
+            $name = TokenType::getNameForTokenType($type);
+            $this->result[] = new Token($type, $name, $this->position, $this->lineNumber, $this->linePosition, $this->options['lineSeparator']);
+            $this->position += strlen($this->options['lineSeparator']);
+            $this->linePosition = 1;
+            $this->lineNumber++;
+        }
+    }
 
-        $elementCount = \count($arrayNode->getElements());
+    /**
+     * @return void
+     * @throws UnexpectedValueException
+     */
+    private function addIndent(): void
+    {
+        if ($this->options['pretty']) {
+            $this->addToken(TokenType::TOKEN_WHITE_SPACE, str_repeat($this->indent, $this->level));
+        }
+    }
+
+    /**
+     * @param ArrayNode $arrayNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     * @throws UnexpectedValueException
+     */
+    public function visitArrayNode(ArrayNode $arrayNode): mixed
+    {
+        $this->addToken(TokenType::TOKEN_LEFT_CURLY_BRACKET, '[');
+
+        $elementCount = count($arrayNode->getElements());
         if ($elementCount > 0) {
             $this->level++;
             $this->addNewline();
@@ -112,7 +205,7 @@ class TokenGeneratorVisitor implements VisitorInterface
                 $element = $arrayNode->getElements()[$i];
                 $element->accept($this);
                 if ($i < $elementCount - 1) {
-                    $this->addText(',');
+                    $this->addToken(TokenType::TOKEN_COMMA, ',');
                 }
                 $this->addNewline();
                 $this->addIndent();
@@ -120,70 +213,107 @@ class TokenGeneratorVisitor implements VisitorInterface
 
             $this->level--;
         }
-        $this->addText(']');
+        $this->addToken(TokenType::TOKEN_RIGHT_CURLY_BRACKET, ']');
+
+        return null;
     }
 
-    public function visitStringNode(StringNode $stringNode)
+    /**
+     * @param StringNode $stringNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitStringNode(StringNode $stringNode): mixed
     {
-        $this->addText('"' . $stringNode->getValue() . '"');
+        $this->addToken(TokenType::TOKEN_STRING, '"' . $stringNode->getValue() . '"');
+
+        return null;
     }
 
-    public function visitKeyNode(KeyNode $keyNode): void
+    /**
+     * @param KeyNode $keyNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitKeyNode(KeyNode $keyNode): mixed
     {
-        $this->addText('"' . $keyNode->getValue() . '"');
+        $this->addToken(TokenType::TOKEN_STRING, '"' . $keyNode->getValue() . '"');
+
+        return null;
     }
 
-    public function visitNumberNode(NumberNode $numberNode): void
+    /**
+     * @param NumberNode $numberNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitNumberNode(NumberNode $numberNode): mixed
     {
-        $this->addText((string) $numberNode->getValue());
+        $this->addToken(TokenType::TOKEN_NUMBER, (string) $numberNode->getValue());
+
+        return null;
     }
 
-    public function visitIntegerNode(IntegerNode $integerNode)
+    /**
+     * @param IntegerNode $integerNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitIntegerNode(IntegerNode $integerNode): mixed
     {
-        $this->addText((string) $integerNode->getValue());
+        $this->addToken(TokenType::TOKEN_INT, (string) $integerNode->getValue());
+
+        return null;
     }
 
-    public function visitBooleanNode(BooleanNode $booleanNode)
+    /**
+     * @param BooleanNode $booleanNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitBooleanNode(BooleanNode $booleanNode): mixed
     {
-        $this->addText($booleanNode->getValue() ? 'true' : 'false');
+        $this->addToken(TokenType::TOKEN_KEYWORD, $booleanNode->getValue() ? 'true' : 'false');
+
+        return null;
     }
 
-    public function visitNullNode(NullNode $nullNode)
+    /**
+     * @param NullNode $nullNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitNullNode(NullNode $nullNode): mixed
     {
-        $this->addText('null');
+        $this->addToken(TokenType::TOKEN_KEYWORD, 'null');
+
+        return null;
     }
 
-    public function visitMemberNode(MemberNode $memberNode)
+    /**
+     * @param MemberNode $memberNode
+     * @return mixed
+     * @throws UnexpectedValueException
+     */
+    public function visitMemberNode(MemberNode $memberNode): mixed
     {
         $memberNode->getKey()->accept($this);
-        $spaceBefore = \str_repeat(' ', $this->options['spacesBeforeColon']);
-        $spaceAfter = \str_repeat(' ', $this->options['spacesAfterColon']);
-        $this->addText($spaceBefore . ':' . $spaceAfter);
+        $spaceBefore = '';
+        $spaceAfter = '';
+        if ($this->options['pretty']) {
+            $spaceBefore = str_repeat(' ', $this->options['spacesBeforeColon']);
+            $spaceAfter = str_repeat(' ', $this->options['spacesAfterColon']);
+        }
+        if ($spaceBefore !== '') {
+            $this->addToken(TokenType::TOKEN_WHITE_SPACE, $spaceBefore);
+        }
+        $this->addToken(TokenType::TOKEN_COLON, ':');
+        if ($spaceAfter !== '') {
+            $this->addToken(TokenType::TOKEN_WHITE_SPACE, $spaceAfter);
+        }
         $memberNode->getValue()->accept($this);
         $this->addNewline();
-    }
 
-    private function getToken()
-    {
-
-    }
-
-    private function addNewline()
-    {
-        if ($this->options['pretty']) {
-//            $this->result[] = new Token(Lexer::TOKEN_NEWLINE, '', )$this->options['lineSeparator'];
-        }
-    }
-
-    private function addIndent()
-    {
-        if ($this->options['pretty']) {
-            $this->result .= \str_repeat($this->indent, $this->level);
-        }
-    }
-
-    private function addText(string $text)
-    {
-        $this->result .= $text;
+        return null;
     }
 }

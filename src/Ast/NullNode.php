@@ -7,15 +7,24 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Ast;
 
 use Jojo1981\JsonAstBuilder\Visitor\VisitorInterface;
 
-class NullNode implements TypeNodeInterface
+/**
+ * @package Jojo1981\JsonAstBuilder\Ast
+ */
+final class NullNode implements TypeNodeInterface
 {
     use TokenAwareTrait;
 
-    public function accept(VisitorInterface $visitor)
+    /**
+     * @param VisitorInterface $visitor
+     * @return mixed
+     */
+    public function accept(VisitorInterface $visitor): mixed
     {
         return $visitor->visitNullNode($this);
     }

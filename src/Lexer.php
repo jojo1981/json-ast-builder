@@ -7,17 +7,32 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
-namespace Jojo1981\JsonAstBuilder\Lexer;
+declare(strict_types=1);
+
+namespace Jojo1981\JsonAstBuilder;
 
 use Jojo1981\JsonAstBuilder\Exception\LogicalException;
 use Jojo1981\JsonAstBuilder\Exception\ParseException;
+use Jojo1981\JsonAstBuilder\Lexer\LexerInterface;
+use Jojo1981\JsonAstBuilder\Lexer\Scanner;
+use Jojo1981\JsonAstBuilder\Lexer\Token;
+use Jojo1981\JsonAstBuilder\Lexer\TokenType;
+use UnexpectedValueException;
+use function array_key_exists;
+use function ctype_digit;
+use function ctype_xdigit;
+use function in_array;
+use function is_numeric;
+use function ord;
+use function strlen;
+use function strtolower;
 
 /**
  * The lexer is responsible for generating a token stream and perform the lexical analysis and check the syntax.
  *
  * @package Jojo1981\JsonAstBuilder\Lexer
  */
-class Lexer implements LexerInterface
+final class Lexer implements LexerInterface
 {
     /** @var string */
     private const KEYWORD_TRUE = 'true';
@@ -52,28 +67,28 @@ class Lexer implements LexerInterface
     ];
 
     /** @var string[] */
-    private const VALID_ESCAPE_CHARS = ['"', '\\', '/', 'b', 'n', 'r', 't', 'u'];
+    public const VALID_ESCAPE_CHARS = ['"', '\\', '/', 'b', 'n', 'r', 't', 'u', 'f'];
 
-    /** @var Scanner */
-    private $scanner;
+    /** @var Scanner|null */
+    private ?Scanner $scanner = null;
 
-    /** @var Token */
-    private $currentToken;
-
-    /** @var int */
-    private $position;
+    /** @var Token|null */
+    private ?Token $currentToken = null;
 
     /** @var int */
-    private $lineNumber;
+    private int $position;
 
     /** @var int */
-    private $linePosition;
+    private int $lineNumber;
+
+    /** @var int */
+    private int $linePosition;
 
     /**
      * @param string $input
-     * @throws ParseException
-     * @throws LogicalException
      * @return void
+     * @throws LogicalException
+     * @throws ParseException
      */
     public function setInput(string $input): void
     {
@@ -85,8 +100,8 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws LogicalException
      * @return void
+     * @throws LogicalException
      */
     public function reset(): void
     {
@@ -96,10 +111,21 @@ class Lexer implements LexerInterface
     }
 
     /**
+     * @return void
      * @throws LogicalException
-     * @throws ParseException
-     * @throws \UnexpectedValueException
+     */
+    private function assertScanner(): void
+    {
+        if (null === $this->scanner) {
+            throw LogicalException::noInputGiven();
+        }
+    }
+
+    /**
      * @return Token
+     * @throws ParseException
+     * @throws UnexpectedValueException
+     * @throws LogicalException
      */
     public function getCurrent(): Token
     {
@@ -111,10 +137,10 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws LogicalException
-     * @throws ParseException
-     * @throws \UnexpectedValueException
      * @return Token
+     * @throws ParseException
+     * @throws UnexpectedValueException
+     * @throws LogicalException
      */
     public function getNext(): Token
     {
@@ -125,9 +151,20 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws ParseException
-     * @throws \UnexpectedValueException
+     * @return void
+     * @throws LogicalException
+     */
+    private function assertEndOfFile(): void
+    {
+        if (null !== $this->currentToken && TokenType::TOKEN_EOF === $this->currentToken->getType()) {
+            throw LogicalException::alreadyAtTheEndOfFile();
+        }
+    }
+
+    /**
      * @return Token
+     * @throws UnexpectedValueException
+     * @throws ParseException
      */
     private function scan(): Token
     {
@@ -138,14 +175,27 @@ class Lexer implements LexerInterface
         }
 
         $current = $this->scanner->look();
+        if (in_array($current, [' ', "\t"], true)) {
+            $buffer = '';
+            do {
+                $buffer .= $this->scanner->read();
+                $current = $this->scanner->look();
+                // @phpstan-ignore-next-line
+            } while (!$this->scanner->hasEndReached() && in_array($current, [' ', "\t"], true));
+            return $this->createTokenType(TokenType::TOKEN_WHITE_SPACE, $buffer);
+        }
+
         switch (true) {
-            case '"' === $current: {
+            case '"' === $current:
+            {
                 return $this->scanString();
             }
-            case \array_key_exists($current, self::CHAR_TOKEN_MAP): {
+            case array_key_exists($current, self::CHAR_TOKEN_MAP):
+            {
                 return $this->createTokenForLexeme($this->scanner->read());
             }
-            case '-' === $current || \is_numeric($current): {
+            case '-' === $current || is_numeric($current):
+            {
                 return $this->readNumber();
             }
         }
@@ -163,35 +213,37 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws ParseException
-     * @throws \UnexpectedValueException
-     * @return Token|null
+     * @return void
      */
-    private function scanKeyword(): ?Token
+    private function lockPosition(): void
     {
-        foreach (self::KEYWORDS as $keyword) {
-            $current = $this->scanner->look(\strlen($keyword));
-            if (\array_key_exists($current, self::CHAR_TOKEN_MAP)) {
-                return $this->createTokenForLexeme($this->scanner->read(\strlen($keyword)));
-            }
-            if (\strtolower($current) === $keyword) {
-                throw ParseException::invalidKeywordFound(
-                    $current,
-                    $this->scanner->getPosition(),
-                    $this->scanner->getLineNumber() + 1,
-                    $this->scanner->getLinePosition() + 1,
-                    $keyword
-                );
-            }
-        }
-
-        return null;
+        $this->position = $this->scanner->getPosition();
+        $this->lineNumber = $this->scanner->getLineNumber() + 1;
+        $this->linePosition = $this->scanner->getLinePosition() + 1;
     }
 
     /**
-     * @throws ParseException
-     * @throws \UnexpectedValueException
+     * @param int $type
+     * @param string|null $lexeme
      * @return Token
+     * @throws UnexpectedValueException
+     */
+    private function createTokenType(int $type, ?string $lexeme = null): Token
+    {
+        return new Token(
+            $type,
+            TokenType::getNameForTokenType($type),
+            $this->position,
+            $this->lineNumber,
+            $this->linePosition,
+            $lexeme
+        );
+    }
+
+    /**
+     * @return Token
+     * @throws UnexpectedValueException
+     * @throws ParseException
      */
     private function scanString(): Token
     {
@@ -200,7 +252,7 @@ class Lexer implements LexerInterface
         $buffer = $this->scanner->read();
         while (!$this->scanner->hasEndReached()) {
             $current = $this->scanner->look();
-            if (\ord($current) < 32) {
+            if (ord($current) < 32) {
                 if (PHP_EOL === $current) {
                     throw ParseException::unterminatedStringFound(
                         $this->scanner->getPosition(),
@@ -209,17 +261,19 @@ class Lexer implements LexerInterface
                     );
                 }
                 throw ParseException::illegalCharacterInStringFound(
-                    $current,
                     $this->scanner->getPosition(),
                     $this->scanner->getLineNumber() + 1,
-                    $this->scanner->getLinePosition() + 1
+                    $this->scanner->getLinePosition() + 1,
+                    $current
                 );
             }
             switch ($current) {
-                case '"': {
+                case '"':
+                {
                     return $this->createTokenType(TokenType::TOKEN_STRING, $buffer . $this->scanner->read());
                 }
-                case '\\': {
+                case '\\':
+                {
                     $buffer .= $this->scanEscape();
                     break;
                 }
@@ -236,9 +290,9 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws ParseException
-     * @throws \UnexpectedValueException
      * @return string
+     * @throws UnexpectedValueException
+     * @throws ParseException
      */
     private function scanEscape(): string
     {
@@ -246,7 +300,7 @@ class Lexer implements LexerInterface
         $this->assertEndIsNotReachedYet();
 
         $current = $this->scanner->look();
-        if (!\in_array($current, self::VALID_ESCAPE_CHARS, true)) {
+        if (!in_array($current, self::VALID_ESCAPE_CHARS, true)) {
             throw ParseException::illegalEscapeUsed(
                 $this->scanner->getPosition(),
                 $this->scanner->getLineNumber() + 1,
@@ -259,7 +313,7 @@ class Lexer implements LexerInterface
             for ($i = 0; $i < 4; $i++) {
                 $this->assertEndIsNotReachedYet();
                 $current = $this->scanner->look();
-                if (!\ctype_xdigit($current)) {
+                if (!ctype_xdigit($current)) {
                     throw ParseException::illegalEscapeUsed(
                         $this->scanner->getPosition(),
                         $this->scanner->getLineNumber() + 1,
@@ -274,9 +328,34 @@ class Lexer implements LexerInterface
     }
 
     /**
+     * @return void
      * @throws ParseException
-     * @throws \UnexpectedValueException
+     */
+    private function assertEndIsNotReachedYet(): void
+    {
+        if ($this->scanner->hasEndReached()) {
+            throw ParseException::unexpectedEndOfFileFound(
+                $this->scanner->getPosition(),
+                $this->scanner->getLineNumber() + 1,
+                $this->scanner->getLinePosition() + 1
+            );
+        }
+    }
+
+    /**
+     * @param string $lexeme
      * @return Token
+     * @throws UnexpectedValueException
+     */
+    private function createTokenForLexeme(string $lexeme): Token
+    {
+        return $this->createTokenType(self::CHAR_TOKEN_MAP[$lexeme], $lexeme);
+    }
+
+    /**
+     * @return Token
+     * @throws UnexpectedValueException
+     * @throws ParseException
      */
     private function readNumber(): Token
     {
@@ -286,7 +365,7 @@ class Lexer implements LexerInterface
         if ('-' === $this->scanner->look()) {
             $buffer .= $this->scanner->read();
             $this->assertEndIsNotReachedYet();
-            if (!\ctype_digit($this->scanner->look())) {
+            if (!ctype_digit($this->scanner->look())) {
                 throw ParseException::illegalNegativeSign(
                     $this->scanner->getPosition(),
                     $this->scanner->getLineNumber() + 1,
@@ -299,7 +378,7 @@ class Lexer implements LexerInterface
             $buffer .= $this->scanner->read();
             $this->assertEndIsNotReachedYet();
             $current = $this->scanner->look();
-            if (null !== $current && \ctype_digit($current)) {
+            if (null !== $current && ctype_digit($current)) {
                 throw ParseException::illegalOctalLiteral(
                     $this->scanner->getPosition(),
                     $this->scanner->getLineNumber() + 1,
@@ -307,16 +386,13 @@ class Lexer implements LexerInterface
                     $current
                 );
             }
-
-            return $this->createTokenType(TokenType::TOKEN_INT);
         }
 
-        $decimalFound = false;
         while (!$this->scanner->hasEndReached()) {
             $char = $this->scanner->look();
-            if (\ctype_digit($char)) {
+            if (ctype_digit($char)) {
                 $buffer .= $this->scanner->read();
-            } elseif ('.' === $char && !$decimalFound) {
+            } elseif ('.' === $char) {
                 return $this->createTokenType(TokenType::TOKEN_NUMBER, $buffer . $this->scanFraction());
             } elseif ('e' === $char || 'E' === $char) {
                 return $this->createTokenType(TokenType::TOKEN_NUMBER, $buffer . $this->scanExponent());
@@ -333,41 +409,15 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @throws ParseException
-     * @throws \UnexpectedValueException
      * @return string
-     */
-    private function scanExponent(): string
-    {
-        $buffer = $this->scanner->read();
-        if (!\ctype_digit($this->scanner->look())) {
-            throw ParseException::illegalEmptyExponent(
-                $this->scanner->getPosition(),
-                $this->scanner->getLineNumber() + 1,
-                $this->scanner->getLinePosition() + 1
-            );
-        }
-
-        while (!$this->scanner->hasEndReached()) {
-            if (\ctype_digit($this->scanner->look())) {
-                $buffer .= $this->scanner->read();
-            } else {
-                return $buffer;
-            }
-        }
-
-        return $buffer;
-    }
-
-    /**
+     * @throws UnexpectedValueException
      * @throws ParseException
-     * @throws \UnexpectedValueException
-     * @return string
      */
     private function scanFraction(): string
     {
-        $buffer = $this->scanner->read();
-        if (!\ctype_digit($this->scanner->look())) {
+        $buffer = $this->scanner->read(); // read '.'
+        $this->assertEndIsNotReachedYet();
+        if (!ctype_digit($this->scanner->look())) {
             throw ParseException::illegalTrailingDecimal(
                 $this->scanner->getPosition(),
                 $this->scanner->getLineNumber() + 1,
@@ -377,7 +427,7 @@ class Lexer implements LexerInterface
 
         while (!$this->scanner->hasEndReached()) {
             $char = $this->scanner->look();
-            if (\ctype_digit($char)) {
+            if (ctype_digit($char)) {
                 $buffer .= $this->scanner->read();
             } elseif ('e' === $char || 'E' === $char) {
                 return $buffer . $this->scanExponent();
@@ -390,77 +440,63 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @param string $lexeme
-     * @throws \UnexpectedValueException
-     * @return Token
-     */
-    private function createTokenForLexeme(string $lexeme): Token
-    {
-        return $this->createTokenType(self::CHAR_TOKEN_MAP[$lexeme], $lexeme);
-    }
-
-    /**
-     * @param int $type
-     * @param string|null $lexeme
-     * @throws \UnexpectedValueException
-     * @return Token
-     */
-    private function createTokenType(int $type, ?string $lexeme = null): Token
-    {
-        return new Token(
-            $type,
-            TokenType::getNameForTokenType($type),
-            $this->position,
-            $this->lineNumber,
-            $this->linePosition,
-            $lexeme
-        );
-    }
-
-    /**
-     * @throws LogicalException
-     * @return void
-     */
-    private function assertScanner(): void
-    {
-        if (null === $this->scanner) {
-            throw LogicalException::noInputGiven();
-        }
-    }
-
-    /**
-     * @throws LogicalException
-     * @return void
-     */
-    private function assertEndOfFile(): void
-    {
-        if (null !== $this->currentToken && TokenType::TOKEN_EOF === $this->currentToken->getType()) {
-            throw LogicalException::alreadyAtTheEndOfFile();
-        }
-    }
-
-    /**
+     * @return string
+     * @throws UnexpectedValueException
      * @throws ParseException
-     * @return void
      */
-    private function assertEndIsNotReachedYet(): void
+    private function scanExponent(): string
     {
-        if ($this->scanner->hasEndReached()) {
-            throw ParseException::unexpectedEndOfFileFound(
+        $buffer = $this->scanner->read(); // read 'e' or 'E'
+        $this->assertEndIsNotReachedYet();
+        $char = $this->scanner->look();
+        // Handle optional sign
+        if ($char === '+' || $char === '-') {
+            $buffer .= $this->scanner->read();
+            $this->assertEndIsNotReachedYet();
+            $char = $this->scanner->look();
+        }
+        // Must have at least one digit after exponent (and optional sign)
+        if (!ctype_digit($char)) {
+            throw ParseException::illegalEmptyExponent(
                 $this->scanner->getPosition(),
                 $this->scanner->getLineNumber() + 1,
                 $this->scanner->getLinePosition() + 1
             );
         }
+        while (!$this->scanner->hasEndReached()) {
+            if (ctype_digit($this->scanner->look())) {
+                $buffer .= $this->scanner->read();
+            } else {
+                return $buffer;
+            }
+        }
+
+        return $buffer;
     }
 
     /**
-     * @return void
+     * @return Token|null
+     * @throws UnexpectedValueException
+     * @throws ParseException
      */
-    private function lockPosition(): void
+    private function scanKeyword(): ?Token
     {
-        $this->position = $this->scanner->getPosition();
-        $this->lineNumber = $this->scanner->getLineNumber() + 1;
-        $this->linePosition = $this->scanner->getLinePosition() + 1;
+        foreach (self::KEYWORDS as $keyword) {
+            $current = $this->scanner->look(strlen($keyword));
+            if (array_key_exists($current, self::CHAR_TOKEN_MAP)) {
+                return $this->createTokenForLexeme($this->scanner->read(strlen($keyword)));
+            }
+            if (strtolower($current) === $keyword) {
+                throw ParseException::invalidKeywordFound(
+                    $current,
+                    $this->scanner->getPosition(),
+                    $this->scanner->getLineNumber() + 1,
+                    $this->scanner->getLinePosition() + 1,
+                    $keyword
+                );
+            }
+        }
+
+        return null;
     }
 }

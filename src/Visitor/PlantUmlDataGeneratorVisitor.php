@@ -7,6 +7,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Visitor;
 
 use Jojo1981\JsonAstBuilder\Ast\ArrayNode;
@@ -21,70 +23,62 @@ use Jojo1981\JsonAstBuilder\Ast\NumberNode;
 use Jojo1981\JsonAstBuilder\Ast\ObjectNode;
 use Jojo1981\JsonAstBuilder\Ast\StringNode;
 use Jojo1981\JsonAstBuilder\Ast\ValueNode;
+use Jojo1981\JsonAstBuilder\Helper\PlantUmlHelper;
+use function array_key_exists;
+use function array_pop;
+use function count;
+use function end;
+use function strlen;
+use function substr;
 
 /**
  * @package Jojo1981\JsonAstBuilder\Visitor
  */
-class PlantUmlDataGeneratorVisitor implements VisitorInterface
+final class PlantUmlDataGeneratorVisitor implements VisitorInterface
 {
     /** @var string[] */
-    private $objects = [];
+    private array $objects = [];
 
     /** @var string[] */
-    private $links = [];
+    private array $links = [];
 
     /** @var int */
-    private $level = 0;
+    private int $level = 0;
 
     /** @var int[] */
-    private $nodeCounts = [];
+    private array $nodeCounts = [];
 
     /** @var string[] */
-    private $parents = [];
+    private array $parents = [];
 
     /** @var string[] */
-    private $keys = [];
+    private array $keys = [];
 
     /** @var string[] */
-    private $states = [];
+    private array $states = [];
 
     /**
      * @return string
      */
     public function getResult(): string
     {
-        $lines = [];
-        $lines[] = '@startuml';
-        $lines[] = '';
-        $lines[] = 'hide empty members';
-        $lines[] = '';
-        $lines[] = 'title';
-        $lines[] = 'Data objects diagram';
-        $lines[] = '';
-        $lines[] = 'end title';
-        $lines[] = '';
-        $lines[] = \implode(PHP_EOL, $this->objects);
-        $lines[] = '';
-        $lines[] = \implode(PHP_EOL, $this->links);
-        $lines[] = '@enduml';
-
-        return \implode(PHP_EOL, $lines);
+        return PlantUmlHelper::generateDocument($this->objects, $this->links);
     }
 
     /**
      * @param JsonNode $jsonNode
-     * @return void
+     * @return mixed
      */
-    public function visitJsonNode(JsonNode $jsonNode): void
+    public function visitJsonNode(JsonNode $jsonNode): mixed
     {
-        $jsonNode->getElement()->accept($this);
+        return $jsonNode->getElement()->accept($this);
     }
 
     /**
      * @param ElementNode $elementNode
      * @return mixed
      */
-    public function visitElementNode(ElementNode $elementNode)
+    public function visitElementNode(ElementNode $elementNode): mixed
     {
         return $elementNode->getValue()->accept($this);
     }
@@ -93,7 +87,7 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
      * @param ValueNode $valueNode
      * @return mixed
      */
-    public function visitValueNode(ValueNode $valueNode)
+    public function visitValueNode(ValueNode $valueNode): mixed
     {
         return $valueNode->getType()->accept($this);
     }
@@ -104,7 +98,7 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
      */
     public function visitObjectNode(ObjectNode $objectNode): string
     {
-        $lastState = !empty($this->states) ? \end($this->states) : null;
+        $lastState = !empty($this->states) ? end($this->states) : null;
         $this->states[] = 'OBJECT';
         $this->level++;
         $this->incrementNodeCount('ObjectNode');
@@ -113,11 +107,11 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
 
         $objectName = 'ObjectNode';
         if (!empty($this->keys)) {
-            $objectName = \end($this->keys);
+            $objectName = end($this->keys);
         }
 
         $text = 'object "**' . $objectName . '**" as ' . $name;
-        if (\count($objectNode->getMembers()) > 0) {
+        if (count($objectNode->getMembers()) > 0) {
             $text .= ' {' . PHP_EOL;
             foreach ($objectNode->getMembers() as $memberNode) {
                 [$key, $value] = $memberNode->accept($this);
@@ -127,21 +121,59 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
         }
         $text .= PHP_EOL;
         $this->objects[] = $text;
+        array_pop($this->parents);
+        $this->createParentChildLink($lastState, $name);
 
-        \array_pop($this->parents);
+        return 'object';
+    }
 
+    /**
+     * @param string $nodeName
+     * @return void
+     */
+    private function incrementNodeCount(string $nodeName): void
+    {
+        if (!array_key_exists($nodeName, $this->nodeCounts)) {
+            $this->nodeCounts[$nodeName] = 0;
+        }
+
+        $this->nodeCounts[$nodeName]++;
+    }
+
+    /**
+     * @param string $nodeName
+     * @return string
+     */
+    private function getInstanceName(string $nodeName): string
+    {
+        if (0 === $this->level) {
+            return $nodeName;
+        }
+
+        $name = $nodeName; // . $this->level;
+        if (array_key_exists($nodeName, $this->nodeCounts)) {
+            $name .= $this->nodeCounts[$nodeName];
+        }
+
+        return $name;
+    }
+
+    /**
+     * @param bool|string|null $lastState
+     * @param string $name
+     * @return void
+     */
+    private function createParentChildLink(bool|string|null $lastState, string $name): void
+    {
         if (!empty($this->parents)) {
-            $parent = \end($this->parents);
-            $linkName = null;
+            $parent = end($this->parents);
             $arrow = $lastState === 'ARRAY' ? '--o' : '--*';
-            $this->links[] = $parent . (null !== $linkName ? ' "' . $linkName .  '"' : '') . ' ' . $arrow . ' ' . $name;
+            $this->links[] = $parent . ' ' . $arrow . ' ' . $name;
         }
 
         $this->level--;
 
-        \array_pop($this->states);
-
-        return 'object';
+        array_pop($this->states);
     }
 
     /**
@@ -150,7 +182,7 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
      */
     public function visitArrayNode(ArrayNode $arrayNode): string
     {
-        $lastState = !empty($this->states) ? \end($this->states) : null;
+        $lastState = !empty($this->states) ? end($this->states) : null;
         $this->states[] = 'ARRAY';
         $this->level++;
         $this->incrementNodeCount('ArrayNode');
@@ -159,41 +191,28 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
 
         $objectName = 'ArrayNode';
         if (!empty($this->keys)) {
-            $objectName = \end($this->keys);
+            $objectName = end($this->keys);
         }
 
         $keys = $this->keys;
         $this->keys = [];
-
         $text = 'object "' . $objectName . '" as ' . $name;
-        if (\count($arrayNode->getElements()) > 0) {
+        if (count($arrayNode->getElements()) > 0) {
             $text .= ' {' . PHP_EOL;
-            $text .= '  element count: ' . \count($arrayNode->getElements()) . PHP_EOL;
+            $text .= '  element count: ' . count($arrayNode->getElements()) . PHP_EOL;
             foreach ($arrayNode->getElements() as $index => $elementNode) {
                 //$text .= '  ' . $elementNode->accept($this) . PHP_EOL;
                 $this->keys[] = 'element ' . ++$index;
                 $elementNode->accept($this);
-                \array_pop($this->keys);
+                array_pop($this->keys);
             }
             $text .= '}';
         }
         $text .= PHP_EOL;
         $this->objects[] = $text;
-
-        \array_pop($this->parents);
-
+        array_pop($this->parents);
         $this->keys = $keys;
-
-        if (!empty($this->parents)) {
-            $parent = \end($this->parents);
-            $linkName = null;
-            $arrow = $lastState === 'ARRAY' ? '--o' : '--*';
-            $this->links[] = $parent . (null !== $linkName ? ' "' . $linkName .  '"' : '') . ' ' . $arrow . ' ' . $name;
-        }
-
-        $this->level--;
-
-        \array_pop($this->states);
+        $this->createParentChildLink($lastState, $name);
 
         return 'array';
     }
@@ -205,8 +224,8 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
     public function visitStringNode(StringNode $stringNode): string
     {
         $result = $stringNode->getValue();
-        if (\strlen($result) > 25) {
-            $result = \substr($result, 0, 25) . '...';
+        if (strlen($result) > 25) {
+            $result = substr($result, 0, 25) . '...';
         }
 
         return $result;
@@ -252,7 +271,7 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
      * @param NullNode $nullNode
      * @return null
      */
-    public function visitNullNode(NullNode $nullNode)
+    public function visitNullNode(NullNode $nullNode): mixed
     {
         return null;
     }
@@ -266,39 +285,8 @@ class PlantUmlDataGeneratorVisitor implements VisitorInterface
         $key = $memberNode->getKey()->accept($this);
         $this->keys[] = $key;
         $value = $memberNode->getValue()->accept($this);
-        \array_pop($this->keys);
+        array_pop($this->keys);
 
         return [$key, $value];
-    }
-
-    /**
-     * @param string $nodeName
-     * @return void
-     */
-    private function incrementNodeCount(string $nodeName): void
-    {
-        if (!\array_key_exists($nodeName, $this->nodeCounts)) {
-            $this->nodeCounts[$nodeName] = 0;
-        }
-
-        $this->nodeCounts[$nodeName]++;
-    }
-
-    /**
-     * @param string $nodeName
-     * @return string
-     */
-    private function getInstanceName(string $nodeName): string
-    {
-        if (0 === $this->level) {
-            return $nodeName;
-        }
-
-        $name = $nodeName; // . $this->level;
-        if (\array_key_exists($nodeName, $this->nodeCounts)) {
-            $name .= $this->nodeCounts[$nodeName];
-        }
-
-        return $name;
     }
 }

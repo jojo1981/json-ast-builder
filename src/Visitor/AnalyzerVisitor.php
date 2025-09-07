@@ -7,6 +7,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
 
 namespace Jojo1981\JsonAstBuilder\Visitor;
 
@@ -23,39 +24,49 @@ use Jojo1981\JsonAstBuilder\Ast\NumberNode;
 use Jojo1981\JsonAstBuilder\Ast\ObjectNode;
 use Jojo1981\JsonAstBuilder\Ast\StringNode;
 use Jojo1981\JsonAstBuilder\Ast\ValueNode;
+use function array_filter;
+use function array_key_exists;
+use function array_keys;
+use function array_pop;
+use function array_sum;
+use function count;
+use function end;
+use function explode;
+use function get_class;
+use function max;
 
 /**
  * @package Jojo1981\JsonAstBuilder\Visitor
  */
-class AnalyzerVisitor implements VisitorInterface
+final class AnalyzerVisitor implements VisitorInterface
 {
     /** @var int */
-    private $level = 0;
+    private int $level = 0;
 
     /** @var int[] */
-    private $levelCounts = [];
+    private array $levelCounts = [];
 
     /** @var int[] */
-    private $nodeTypeCounts = [];
+    private array $nodeTypeCounts = [];
 
     /** @var string[] */
-    private $parents = [];
+    private array $parents = [];
 
     /**
      * @param JsonNode $jsonNode
-     * @return mixed
+     * @return array
      */
-    public function visitJsonNode(JsonNode $jsonNode)
+    public function visitJsonNode(JsonNode $jsonNode): array
     {
         $nodeTree = [];
         $this->pushNode($jsonNode);
         $nodeTree['JsonNode'] = $jsonNode->getElement()->accept($this);
         $this->popNode();
 
-        $maxLevel = \count($this->levelCounts);
-        $nodeCount = \array_sum($this->levelCounts);
-        $maxSiblings = \max($this->levelCounts);
-        $levelsWithMaxSiblings = \array_keys(\array_filter(
+        $maxLevel = count($this->levelCounts);
+        $nodeCount = array_sum($this->levelCounts);
+        $maxSiblings = max($this->levelCounts);
+        $levelsWithMaxSiblings = array_keys(array_filter(
             $this->levelCounts,
             static function (int $count) use ($maxSiblings): bool {
                 return $count === $maxSiblings;
@@ -73,10 +84,60 @@ class AnalyzerVisitor implements VisitorInterface
     }
 
     /**
-     * @param ElementNode $elementNode
-     * @return mixed
+     * @param NodeInterface $node
+     * @return void
      */
-    public function visitElementNode(ElementNode $elementNode)
+    private function pushNode(NodeInterface $node): void
+    {
+        $this->level++;
+        if (!array_key_exists($this->level, $this->levelCounts)) {
+            $this->levelCounts[$this->level] = 0;
+        }
+        $this->levelCounts[$this->level]++;
+        $nodeName = $this->incrementNodeCount($node);
+
+        $this->parents[] = $nodeName;
+    }
+
+    /**
+     * @param NodeInterface $node
+     * @return string
+     */
+    private function incrementNodeCount(NodeInterface $node): string
+    {
+        $nodeName = $this->getNodeNameFromNode($node);
+        if (!array_key_exists($nodeName, $this->nodeTypeCounts)) {
+            $this->nodeTypeCounts[$nodeName] = 0;
+        }
+
+        return $nodeName . ++$this->nodeTypeCounts[$nodeName];
+    }
+
+    /**
+     * @param NodeInterface $node
+     * @return string
+     */
+    private function getNodeNameFromNode(NodeInterface $node): string
+    {
+        $parts = explode('\\', get_class($node));
+
+        return end($parts);
+    }
+
+    /**
+     * @return void
+     */
+    private function popNode(): void
+    {
+        $this->level--;
+        array_pop($this->parents);
+    }
+
+    /**
+     * @param ElementNode $elementNode
+     * @return array
+     */
+    public function visitElementNode(ElementNode $elementNode): array
     {
         $result = [];
         $this->pushNode($elementNode);
@@ -88,9 +149,9 @@ class AnalyzerVisitor implements VisitorInterface
 
     /**
      * @param ValueNode $valueNode
-     * @return mixed
+     * @return array
      */
-    public function visitValueNode(ValueNode $valueNode)
+    public function visitValueNode(ValueNode $valueNode): array
     {
         $result = [];
         $this->pushNode($valueNode);
@@ -102,9 +163,9 @@ class AnalyzerVisitor implements VisitorInterface
 
     /**
      * @param ObjectNode $objectNode
-     * @return mixed
+     * @return array
      */
-    public function visitObjectNode(ObjectNode $objectNode)
+    public function visitObjectNode(ObjectNode $objectNode): array
     {
         $result = [];
 
@@ -225,55 +286,5 @@ class AnalyzerVisitor implements VisitorInterface
         $this->popNode();
 
         return 'KeyNode';
-    }
-
-    /**
-     * @param NodeInterface $node
-     * @return void
-     */
-    private function pushNode(NodeInterface $node): void
-    {
-        $this->level++;
-        if (!\array_key_exists($this->level, $this->levelCounts)) {
-            $this->levelCounts[$this->level] = 0;
-        }
-        $this->levelCounts[$this->level]++;
-        $nodeName = $this->incrementNodeCount($node);
-
-        $this->parents[] = $nodeName;
-    }
-
-    /**
-     * @return void
-     */
-    private function popNode(): void
-    {
-        $this->level--;
-        \array_pop($this->parents);
-    }
-
-    /**
-     * @param NodeInterface $node
-     * @return string
-     */
-    private function incrementNodeCount(NodeInterface $node): string
-    {
-        $nodeName = $this->getNodeNameFromNode($node);
-        if (!\array_key_exists($nodeName, $this->nodeTypeCounts)) {
-            $this->nodeTypeCounts[$nodeName] = 0;
-        }
-
-        return $nodeName . ++$this->nodeTypeCounts[$nodeName];
-    }
-
-    /**
-     * @param NodeInterface $node
-     * @return string
-     */
-    private function getNodeNameFromNode(NodeInterface $node): string
-    {
-        $parts = \explode('\\', \get_class($node));
-
-        return \end($parts);
     }
 }

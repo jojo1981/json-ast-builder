@@ -7,30 +7,34 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Lexer;
+
+use function sprintf;
 
 /**
  * @package Jojo1981\JsonAstBuilder\Lexer
  */
-class Token
+final class Token
 {
     /** @var int */
-    private $type;
+    private int $type;
 
     /** @var string */
-    private $name;
+    private string $name;
 
     /** @var int */
-    private $position;
+    private int $position;
 
     /** @var int */
-    private $lineNumber;
+    private int $lineNumber;
 
     /** @var int */
-    private $linePosition;
+    private int $linePosition;
 
-    /** @var null|string */
-    private $lexeme;
+    /** @var string|null */
+    private ?string $lexeme;
 
     /**
      * @param int $type
@@ -97,7 +101,7 @@ class Token
     }
 
     /**
-     * @return null|string
+     * @return string|null
      */
     public function getLexeme(): ?string
     {
@@ -109,7 +113,7 @@ class Token
      */
     public function __toString(): string
     {
-        return \sprintf(
+        return sprintf(
             '<%s[%d]> = \'%s\', [%d] [%d:%d]',
             $this->name,
             $this->type,

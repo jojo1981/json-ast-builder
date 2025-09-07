@@ -1,6 +1,8 @@
 JSON AST Builder for PHP 
 =====================
 
+[![Build Status](https://github.com/jojo1981/json-ast-builder/actions/workflows/build.yml/badge.svg)](https://github.com/jojo1981/json-ast-builder/actions/workflows/build.yml)
+[![Coverage Status](https://coveralls.io/repos/github/jojo1981/json-ast-builder/badge.svg)](https://coveralls.io/github/jojo1981/json-ast-builder)
 [![Latest Stable Version](https://poser.pugx.org/jojo1981/json-ast-builder/v/stable)](https://packagist.org/packages/jojo1981/json-ast-builder)
 [![Total Downloads](https://poser.pugx.org/jojo1981/json-ast-builder/downloads)](https://packagist.org/packages/jojo1981/json-ast-builder)
 [![License](https://poser.pugx.org/jojo1981/json-ast-builder/license)](https://packagist.org/packages/jojo1981/json-ast-builder)
@@ -43,7 +45,7 @@ composer require jojo1981/json-ast-builder
 require 'vendor/autoload.php';
 
 use Jojo1981\JsonAstBuilder\Generator;
-use Jojo1981\JsonAstBuilder\Lexer\Lexer;
+use Jojo1981\JsonAstBuilder\Lexer;
 use Jojo1981\JsonAstBuilder\Parser;
 
 // setup lexer and parser

@@ -8,13 +8,9 @@
  * file that was distributed in the root of the source code
  */
 
-\call_user_func(static function () {
-    if (!\is_file($autoloadFile = __DIR__ . '/../vendor/autoload.php')) {
-        throw new \RuntimeException('Did not find vendor/autoload.php. Did you run "composer install --dev"?');
-    }
+declare(strict_types=1);
 
-    /** @var \Composer\Autoload\ClassLoader $loader */
-    $loader = require $autoloadFile;
-    $loader->addPsr4('Jojo1981\\JsonAstBuilder\\TestSuite\\', __DIR__);
+require_once __DIR__ . '/../vendor/autoload.php';
 
-});
+/** @noinspection PhpUnhandledExceptionInspection */
+DG\BypassFinals::enable();

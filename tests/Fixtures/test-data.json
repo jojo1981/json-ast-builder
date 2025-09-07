@@ -1,0 +1,87 @@
+{
+  "string": "example",
+  "number": 42,
+  "float": 3.14159,
+  "boolean": true,
+  "null": null,
+  "unicode": "Hello, 世界 🌍 Привет!",
+  "scientific": 1.23e4,
+  "unicodeEscaped": "\u00A9 \u20AC \uD83D\uDE00",
+  "escapeCodes": "Line1\nLine2\tTabbed\rCarriageReturn\\Backslash\"Quote\/Slash\bBackspace\fFormFeed",
+  "array": [
+    "item1",
+    2,
+    2.718,
+    false,
+    null,
+    [
+      "nestedArrayItem1",
+      {
+        "deepObject": {
+          "deepKey": "deepValue",
+          "deepFloat": 0.57721
+        }
+      }
+    ],
+    {
+      "nestedObjectInArray": {
+        "key": "value",
+        "anotherArray": [
+          1,
+          2.5,
+          3
+        ]
+      }
+    },
+    {
+      "unicodeArray": "😀 漢字"
+    },
+    {
+      "unicodeEscapedArray": "\u041F\u0440\u0438\u0432\u0435\u0442 \u4F60\u597D"
+    },
+    6.022e23,
+    {
+      "nestedUnicode": "مرحبا 🌟",
+      "nestedScientific": -5.67E-8
+    },
+    {
+      "nestedUnicodeEscaped": "\u3053\u3093\u306B\u3061\u306F \u0E08\u0E32\u0E19\u0E2D\u0E22\u0E39\u0E48"
+    },
+    {
+      "escapeCodesArray": "First\nSecond\tThird\\Fourth\"Fifth\/Sixth\bSeventh\fEighth"
+    },
+    {
+      "nestedEscapeCodes": "Alpha\nBeta\tGamma\\Delta\"Epsilon\/Zeta\bEta\fTheta"
+    }
+  ],
+  "object": {
+    "key1": "value1",
+    "key2": 123,
+    "key3": false,
+    "key4": 6.022,
+    "unicodeKey": "🧬 Данные",
+    "scientificKey": 9.81e2,
+    "unicodeEscapedKey": "\u0938\u094D\u0935\u093E\u0917\u0924 \u0627\u0644\u0633\u0644\u0627\u0645",
+    "escapeCodesKey": "One\nTwo\tThree\\Four\"Five\/Six\bSeven\fEight",
+    "nestedObject": {
+      "nestedKey1": "nestedValue1",
+      "nestedArray": [
+        {
+          "deepNestedObject": {
+            "deepKey": "deepValue",
+            "deepFloat": 1.618,
+            "deepUnicode": "नमस्ते 🌸",
+            "deepScientific": 3.14E-10,
+            "deepUnicodeEscaped": "\u05E9\u05DC\u05D5\u05DD \uD83C\uDF1F",
+            "deepEscapeCodes": "Uno\nDos\tTres\\Cuatro\"Cinco\/Seis\bSiete\fOcho"
+          }
+        },
+        [
+          1,
+          2,
+          3.14
+        ]
+      ]
+    }
+  }
+}

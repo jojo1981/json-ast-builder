@@ -7,17 +7,22 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Ast;
 
 use Jojo1981\JsonAstBuilder\Visitor\VisitorInterface;
 
-class MemberNode implements NodeInterface
+/**
+ * @package Jojo1981\JsonAstBuilder\Ast
+ */
+final class MemberNode implements NodeInterface
 {
     /** @var KeyNode */
-    private $key;
+    private KeyNode $key;
 
     /** @var ElementNode */
-    private $value;
+    private ElementNode $value;
 
     public function __construct(KeyNode $key, ElementNode $element)
     {
@@ -25,27 +30,45 @@ class MemberNode implements NodeInterface
         $this->value = $element;
     }
 
+    /**
+     * @return KeyNode
+     */
     public function getKey(): KeyNode
     {
         return $this->key;
     }
 
+    /**
+     * @param KeyNode $key
+     * @return void
+     */
     public function setKey(KeyNode $key): void
     {
         $this->key = $key;
     }
 
+    /**
+     * @return ElementNode
+     */
     public function getValue(): ElementNode
     {
         return $this->value;
     }
 
+    /**
+     * @param ElementNode $value
+     * @return void
+     */
     public function setValue(ElementNode $value): void
     {
         $this->value = $value;
     }
 
-    public function accept(VisitorInterface $visitor)
+    /**
+     * @param VisitorInterface $visitor
+     * @return mixed
+     */
+    public function accept(VisitorInterface $visitor): mixed
     {
         return $visitor->visitMemberNode($this);
     }

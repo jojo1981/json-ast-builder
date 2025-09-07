@@ -7,16 +7,22 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Ast;
 
 use Jojo1981\JsonAstBuilder\Visitor\VisitorInterface;
+use function array_walk;
 
-class ArrayNode implements TypeNodeInterface
+/**
+ * @package Jojo1981\JsonAstBuilder\Ast
+ */
+final class ArrayNode implements TypeNodeInterface
 {
     use TokenAwareTrait;
 
     /** @var ElementNode[] */
-    private $elements = [];
+    private array $elements = [];
 
     /**
      * @param ElementNode[] $elements
@@ -41,7 +47,16 @@ class ArrayNode implements TypeNodeInterface
     public function setElements(array $elements): void
     {
         $this->elements = [];
-        \array_walk($elements, [$this, 'addElement']);
+        array_walk($elements, [$this, 'addElement']);
+    }
+
+    /**
+     * @param VisitorInterface $visitor
+     * @return mixed
+     */
+    public function accept(VisitorInterface $visitor): mixed
+    {
+        return $visitor->visitArrayNode($this);
     }
 
     /**
@@ -51,10 +66,5 @@ class ArrayNode implements TypeNodeInterface
     private function addElement(ElementNode $element): void
     {
         $this->elements[] = $element;
-    }
-
-    public function accept(VisitorInterface $visitor)
-    {
-        return $visitor->visitArrayNode($this);
     }
 }

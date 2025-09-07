@@ -7,11 +7,15 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Ast;
 
 use Jojo1981\JsonAstBuilder\Visitor\VisitableInterface;
 
+/**
+ * @package Jojo1981\JsonAstBuilder\Ast
+ */
 interface NodeInterface extends VisitableInterface
 {
-
 }
