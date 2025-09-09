@@ -7,19 +7,22 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder;
 
 use Jojo1981\JsonAstBuilder\Ast\JsonNode;
 use Jojo1981\JsonAstBuilder\Visitor\AnalyzerVisitor;
 use Jojo1981\JsonAstBuilder\Visitor\DataGeneratorVisitor;
-use Jojo1981\JsonAstBuilder\Visitor\PlantUmlAstNodesGeneratorVisitor;
 use Jojo1981\JsonAstBuilder\Visitor\JsonStringGeneratorVisitor;
+use Jojo1981\JsonAstBuilder\Visitor\PlantUmlAstNodesGeneratorVisitor;
 use Jojo1981\JsonAstBuilder\Visitor\PlantUmlDataGeneratorVisitor;
+use Jojo1981\JsonAstBuilder\Visitor\TokenGeneratorVisitor;
 
 /**
  * @package Jojo1981\JsonAstBuilder
  */
-class Generator
+final class Generator
 {
     /**
      * @param JsonNode $jsonNode
@@ -39,7 +42,7 @@ class Generator
      * @param array $options
      * @return mixed
      */
-    public function generateData(JsonNode $jsonNode, array $options = [])
+    public function generateData(JsonNode $jsonNode, array $options = []): mixed
     {
         $visitor = new DataGeneratorVisitor($options);
 
@@ -79,5 +82,17 @@ class Generator
         $visitor = new AnalyzerVisitor();
 
         return $jsonNode->accept($visitor);
+    }
+
+    /**
+     * @param JsonNode $jsonNode
+     * @return array
+     */
+    public function getTokens(JsonNode $jsonNode): array
+    {
+        $visitor = new TokenGeneratorVisitor();
+        $jsonNode->accept($visitor);
+
+        return $visitor->getResult();
     }
 }

@@ -7,19 +7,21 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Exception;
 
 /**
  * @package Jojo1981\JsonAstBuilder\Exception
  */
-class LogicalException extends JsonException
+final class LogicalException extends JsonException
 {
     /**
      * @return LogicalException
      */
     public static function noInputGiven(): LogicalException
     {
-        return new static(
+        return new self(
             'Can not parse json string because no input is given. Set input first by calling the `setInput` method'
         );
     }
@@ -29,7 +31,7 @@ class LogicalException extends JsonException
      */
     public static function alreadyAtTheEndOfFile(): LogicalException
     {
-        return new static(<<<EOT
+        return new self(<<<EOT
 The Lexer is already at the end of the input stream and an EOF token has already been retrieved by an earlier invocation the: `getNext method.
 You'll need to reset the Lexer first calling the `reset` method or set a new input by calling the `setInput` method.
 When still parsing the token stream some logic in your parser needs to be fixed and do not call the `getNext` method when a EOF token already has been returned

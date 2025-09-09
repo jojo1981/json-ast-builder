@@ -7,11 +7,13 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Ast;
 
-use Jojo1981\JsonAstBuilder\Lexer\Token;
-
-interface TypeNodeInterface extends NodeInterface
+/**
+ * @package Jojo1981\JsonAstBuilder\Ast
+ */
+interface TypeNodeInterface extends NodeInterface, NodeWithTokenInterface
 {
-    public function getToken(): ?Token;
 }

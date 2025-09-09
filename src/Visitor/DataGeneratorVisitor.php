@@ -7,6 +7,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Visitor;
 
 use Jojo1981\JsonAstBuilder\Ast\ArrayNode;
@@ -21,28 +23,30 @@ use Jojo1981\JsonAstBuilder\Ast\NumberNode;
 use Jojo1981\JsonAstBuilder\Ast\ObjectNode;
 use Jojo1981\JsonAstBuilder\Ast\StringNode;
 use Jojo1981\JsonAstBuilder\Ast\ValueNode;
+use stdClass;
+use function array_merge;
 
 /**
  * @package Jojo1981\JsonAstBuilder\Visitor
  */
-class DataGeneratorVisitor implements VisitorInterface
+final class DataGeneratorVisitor implements VisitorInterface
 {
     /** @var array */
-    private $options;
+    private array $options;
 
     /**
      * @param array $options
      */
     public function __construct(array $options = [])
     {
-        $this->options = \array_merge(['assoc' => false], $options);
+        $this->options = array_merge(['assoc' => false], $options);
     }
 
     /**
      * @param JsonNode $jsonNode
      * @return mixed
      */
-    public function visitJsonNode(JsonNode $jsonNode)
+    public function visitJsonNode(JsonNode $jsonNode): mixed
     {
         return $jsonNode->getElement()->accept($this);
     }
@@ -51,7 +55,7 @@ class DataGeneratorVisitor implements VisitorInterface
      * @param ElementNode $elementNode
      * @return mixed
      */
-    public function visitElementNode(ElementNode $elementNode)
+    public function visitElementNode(ElementNode $elementNode): mixed
     {
         return $elementNode->getValue()->accept($this);
     }
@@ -60,18 +64,18 @@ class DataGeneratorVisitor implements VisitorInterface
      * @param ValueNode $valueNode
      * @return mixed
      */
-    public function visitValueNode(ValueNode $valueNode)
+    public function visitValueNode(ValueNode $valueNode): mixed
     {
         return $valueNode->getType()->accept($this);
     }
 
     /**
      * @param ObjectNode $objectNode
-     * @return array|\stdClass
+     * @return array|stdClass
      */
-    public function visitObjectNode(ObjectNode $objectNode)
+    public function visitObjectNode(ObjectNode $objectNode): array|stdClass
     {
-        $result = $this->isAssoc() ? [] : new \stdClass();
+        $result = $this->isAssoc() ? [] : new stdClass();
 
         foreach ($objectNode->getMembers() as $member) {
             [$key, $value] = $member->accept($this);
@@ -83,6 +87,14 @@ class DataGeneratorVisitor implements VisitorInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @return bool
+     */
+    private function isAssoc(): bool
+    {
+        return $this->options['assoc'];
     }
 
     /**
@@ -148,7 +160,7 @@ class DataGeneratorVisitor implements VisitorInterface
      * @param NullNode $nullNode
      * @return null
      */
-    public function visitNullNode(NullNode $nullNode)
+    public function visitNullNode(NullNode $nullNode): mixed
     {
         return null;
     }
@@ -163,13 +175,5 @@ class DataGeneratorVisitor implements VisitorInterface
         $value = $memberNode->getValue()->accept($this);
 
         return [$key, $value];
-    }
-
-    /**
-     * @return bool
-     */
-    private function isAssoc(): bool
-    {
-        return $this->options['assoc'];
     }
 }

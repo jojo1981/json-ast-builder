@@ -7,15 +7,18 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
-namespace Jojo1981\JsonAstBuilder\TestSuite\Test;
+declare(strict_types=1);
+
+namespace tests\Jojo1981\JsonAstBuilder\Test\Lexer;
 
 use Jojo1981\JsonAstBuilder\Lexer\Scanner;
 use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\TestCase;
 use SebastianBergmann\RecursionContext\InvalidArgumentException;
+use UnexpectedValueException;
 
 /**
- * @package Jojo1981\JsonAstBuilder\TestSuite\Test
+ * @package tests\Jojo1981\JsonAstBuilder\Test\Lexer;
  */
 class ScannerTest extends TestCase
 {
@@ -23,7 +26,7 @@ class ScannerTest extends TestCase
      * @test
      *
      * @throws InvalidArgumentException
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      * @throws ExpectationFailedException
      * @return void
      */
@@ -52,7 +55,7 @@ class ScannerTest extends TestCase
      * @test
      *
      * @throws InvalidArgumentException
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      * @throws ExpectationFailedException
      * @return void
      */
@@ -91,7 +94,7 @@ class ScannerTest extends TestCase
      * @test
      *
      * @throws InvalidArgumentException
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      * @throws ExpectationFailedException
      * @return void
      */
@@ -159,12 +162,12 @@ class ScannerTest extends TestCase
 
     /**
      * @test
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      * @return void
      */
     public function positiveIntegerForLookAhead(): void
     {
-        $exception = new \UnexpectedValueException('Expected a positive integer, but got: -5');
+        $exception = new UnexpectedValueException('Expected a positive integer, but got: -5');
         $this->expectExceptionObject($exception);
 
         $scanner = new Scanner('');
@@ -174,12 +177,12 @@ class ScannerTest extends TestCase
     /**
      * @test
      *
-     * @throws \UnexpectedValueException
+     * @throws UnexpectedValueException
      * @return void
      */
     public function positiveIntegerForReadForward(): void
     {
-        $exception = new \UnexpectedValueException('Expected a positive integer, but got: -2');
+        $exception = new UnexpectedValueException('Expected a positive integer, but got: -2');
         $this->expectExceptionObject($exception);
 
         $scanner = new Scanner('');

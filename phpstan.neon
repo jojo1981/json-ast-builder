@@ -1,0 +1,15 @@
+parameters:
+  treatPhpDocTypesAsCertain: false
+  ignoreErrors:
+    - message: "/Result of \\|\\| is always false\\./"
+      path: src/Lexer.php
+    - message: "/Strict comparison using === between 'E' and numeric-string will always evaluate to false\\./"
+      path: src/Lexer.php
+    - message: "/Strict comparison using === between 'e' and numeric-string will always evaluate to false\\./"
+      path: src/Lexer.php
+    - message: "/Left side of && is always true\\./"
+      path: src/Parser.php
+    - message: "/Strict comparison using !== between int<min, 10>\\|int<12, max> and 11 will always evaluate to true\\./"
+      path: src/Parser.php
+    - message: "/Strict comparison using !== between int<min, 8>\\|int<10, max> and 9 will always evaluate to true\\./"
+      path: src/Parser.php

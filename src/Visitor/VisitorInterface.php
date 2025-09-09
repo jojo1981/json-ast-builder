@@ -7,6 +7,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed in the root of the source code
  */
+declare(strict_types=1);
+
 namespace Jojo1981\JsonAstBuilder\Visitor;
 
 use Jojo1981\JsonAstBuilder\Ast\ArrayNode;
@@ -31,71 +33,71 @@ interface VisitorInterface
      * @param JsonNode $jsonNode
      * @return mixed
      */
-    public function visitJsonNode(JsonNode $jsonNode);
+    public function visitJsonNode(JsonNode $jsonNode): mixed;
 
     /**
      * @param ElementNode $elementNode
      * @return mixed
      */
-    public function visitElementNode(ElementNode $elementNode);
+    public function visitElementNode(ElementNode $elementNode): mixed;
 
     /**
      * @param ValueNode $valueNode
      * @return mixed
      */
-    public function visitValueNode(ValueNode $valueNode);
+    public function visitValueNode(ValueNode $valueNode): mixed;
 
     /**
      * @param ObjectNode $objectNode
      * @return mixed
      */
-    public function visitObjectNode(ObjectNode $objectNode);
+    public function visitObjectNode(ObjectNode $objectNode): mixed;
 
     /**
      * @param ArrayNode $arrayNode
      * @return mixed
      */
-    public function visitArrayNode(ArrayNode $arrayNode);
+    public function visitArrayNode(ArrayNode $arrayNode): mixed;
 
     /**
      * @param StringNode $stringNode
      * @return mixed
      */
-    public function visitStringNode(StringNode $stringNode);
+    public function visitStringNode(StringNode $stringNode): mixed;
 
     /**
      * @param NumberNode $numberNode
      * @return mixed
      */
-    public function visitNumberNode(NumberNode $numberNode);
+    public function visitNumberNode(NumberNode $numberNode): mixed;
 
     /**
      * @param IntegerNode $integerNode
      * @return mixed
      */
-    public function visitIntegerNode(IntegerNode $integerNode);
+    public function visitIntegerNode(IntegerNode $integerNode): mixed;
 
     /**
      * @param BooleanNode $booleanNode
      * @return mixed
      */
-    public function visitBooleanNode(BooleanNode $booleanNode);
+    public function visitBooleanNode(BooleanNode $booleanNode): mixed;
 
     /**
      * @param NullNode $nullNode
      * @return mixed
      */
-    public function visitNullNode(NullNode $nullNode);
+    public function visitNullNode(NullNode $nullNode): mixed;
 
     /**
      * @param MemberNode $memberNode
      * @return mixed
      */
-    public function visitMemberNode(MemberNode $memberNode);
+    public function visitMemberNode(MemberNode $memberNode): mixed;
 
     /**
      * @param KeyNode $keyNode
      * @return mixed
      */
-    public function visitKeyNode(KeyNode $keyNode);
+    public function visitKeyNode(KeyNode $keyNode): mixed;
 }
